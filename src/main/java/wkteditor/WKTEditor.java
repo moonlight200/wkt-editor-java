@@ -1,5 +1,6 @@
 package wkteditor;
 
+import org.jetbrains.annotations.Nullable;
 import wkteditor.ui.DisplayOptions;
 import wkteditor.ui.WKTFrame;
 
@@ -18,16 +19,23 @@ public class WKTEditor {
         editor.setElementChangeListener(frame);
     }
 
+    public static final String DEFAULT_FILE_NAME = "Unnamed Geometry.wkt";
+
     private DisplayOptions displayOpt;
     private CursorMode cursorMode;
     private WKTElement curElement;
     private List<WKTElement> elements;
     private ElementChangeListener listener;
+    @Nullable
+    private File openFile;
+    private boolean unsavedChanges;
 
     public WKTEditor() {
         displayOpt = new DisplayOptions();
         cursorMode = CursorMode.SELECT;
         elements = new ArrayList<>();
+        openFile = null;
+        unsavedChanges = false;
     }
 
     /**
@@ -126,15 +134,36 @@ public class WKTEditor {
     public void save(File file) {
         endCurrentElement();
 
+        openFile = file;
         try (FileOutputStream fos = new FileOutputStream(file)) {
             for (WKTElement element : elements) {
                 String wkt = element.toWKT();
                 wkt += "\n";
                 fos.write(wkt.getBytes(Charset.forName("UTF-8")));
             }
+            unsavedChanges = false;
         } catch (IOException exception) {
             exception.printStackTrace();
         }
+    }
+
+    /**
+     * Gets the file that is currently opened.
+     *
+     * @return The file that is currently opened, or <code>null</code> if no file is currently opened.
+     */
+    @Nullable
+    public File getOpenFile() {
+        return openFile;
+    }
+
+    /**
+     * Checks if there are changes to the currently open file, that have not yet been saved.
+     *
+     * @return <code>true</code> if there are unsaved changes.
+     */
+    public boolean areThereUnsavedChanges() {
+        return unsavedChanges;
     }
 
     /**
@@ -178,6 +207,7 @@ public class WKTEditor {
      * notified about the change.
      */
     private void onElementChanged() {
+        unsavedChanges = true;
         if (listener != null) {
             listener.onElementChanged();
         }

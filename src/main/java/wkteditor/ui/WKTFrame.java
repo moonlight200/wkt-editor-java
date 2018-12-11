@@ -21,7 +21,9 @@ import java.util.*;
  * to edit the wkt elements.
  */
 public class WKTFrame extends JFrame implements ActionListener, WKTEditor.ElementChangeListener {
+    private static final String AC_OPEN = "actionCommand:open";
     private static final String AC_SAVE = "actionCommand:save";
+    private static final String AC_SAVE_AS = "actionCommand:saveAs";
     public static final String AC_CURSOR_SELECT = "actionCommand:cursorSelect";
     public static final String AC_CURSOR_POINT = "actionCommand:cursorPoint";
     public static final String AC_CURSOR_LINE = "actionCommand:cursorLine";
@@ -82,12 +84,26 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
         JMenu menuFile = new JMenu(strings.getString("menu.file"));
         menuBar.add(menuFile);
 
+        JMenuItem menuFileOpen = new JMenuItem(strings.getString("menu.file.open"));
+        menuFileOpen.setAccelerator(
+                KeyStroke.getKeyStroke(KeyEvent.VK_O, KeyEvent.CTRL_DOWN_MASK));
+        menuFileOpen.setActionCommand(AC_OPEN);
+        menuFileOpen.addActionListener(this);
+        menuFile.add(menuFileOpen);
+
         JMenuItem menuFileSave = new JMenuItem(strings.getString("menu.file.save"));
         menuFileSave.setAccelerator(
                 KeyStroke.getKeyStroke(KeyEvent.VK_S, KeyEvent.CTRL_DOWN_MASK));
         menuFileSave.setActionCommand(AC_SAVE);
         menuFileSave.addActionListener(this);
         menuFile.add(menuFileSave);
+
+        JMenuItem menuFileSaveAs = new JMenuItem(strings.getString("menu.file.saveAs"));
+        menuFileSaveAs.setAccelerator(
+                KeyStroke.getKeyStroke(KeyEvent.VK_S, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
+        menuFileSaveAs.setActionCommand(AC_SAVE_AS);
+        menuFileSaveAs.addActionListener(this);
+        menuFile.add(menuFileSaveAs);
 
         JMenu menuEdit = new JMenu(strings.getString("menu.edit"));
         menuBar.add(menuEdit);
@@ -259,8 +275,15 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
             case AC_REMOVE_BG_IMAGE:
                 wktPane.setBackgroundImage(null);
                 break;
+            case AC_OPEN:
+                // TODO check if file was saved
+                // TODO open new file
+                break;
             case AC_SAVE:
-                saveWkt();
+                saveWkt(editor.getOpenFile());
+                break;
+            case AC_SAVE_AS:
+                saveWkt(null);
                 break;
             case AC_CURSOR_SELECT:
                 editor.endCurrentElement();
@@ -306,33 +329,41 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
     /**
      * Shows a file dialog to let the user select the destination file. If a
      * file was selected, forwards the save operation to the {@link WKTEditor}.
+     *
+     * @param file The file to save the wkt data to. Set to <code>null</code> to show file chooser dialog.
      */
-    private void saveWkt() {
-        final JFileChooser fc = new JFileChooser();
-        fc.setFileFilter(new FileFilter() {
-            @Override
-            public boolean accept(File file) {
-                if (!file.isFile()) {
-                    return true;
+    private void saveWkt(File file) {
+        if (file == null) {
+            final JFileChooser fc = new JFileChooser();
+            fc.setFileFilter(new FileFilter() {
+                @Override
+                public boolean accept(File file) {
+                    if (!file.isFile()) {
+                        return true;
+                    }
+
+                    String[] parts = file.getName().split("\\.");
+                    if (parts.length < 2) {
+                        return false;
+                    }
+                    String ext = parts[parts.length - 1].toLowerCase();
+                    return "wkt".equals(ext);
                 }
 
-                String[] parts = file.getName().split("\\.");
-                if (parts.length < 2) {
-                    return false;
+                @Override
+                public String getDescription() {
+                    return strings.getString("fileFilter.wkt");
                 }
-                String ext = parts[parts.length - 1].toLowerCase();
-                return "wkt".equals(ext);
-            }
+            });
+            final int result = fc.showSaveDialog(this);
 
-            @Override
-            public String getDescription() {
-                return strings.getString("fileFilter.wkt");
+            if (result == JFileChooser.APPROVE_OPTION) {
+                file = fc.getSelectedFile();
             }
-        });
-        final int result = fc.showSaveDialog(this);
+        }
 
-        if (result == JFileChooser.APPROVE_OPTION) {
-            editor.save(fc.getSelectedFile());
+        if (file != null) {
+            editor.save(file);
         }
     }
 
