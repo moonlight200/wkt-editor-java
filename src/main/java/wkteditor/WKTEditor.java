@@ -1,6 +1,7 @@
 package wkteditor;
 
 import org.jetbrains.annotations.Nullable;
+import wkteditor.io.WKTReader;
 import wkteditor.ui.DisplayOptions;
 import wkteditor.ui.WKTFrame;
 
@@ -23,9 +24,10 @@ public class WKTEditor {
 
     private DisplayOptions displayOpt;
     private CursorMode cursorMode;
+    private ElementChangeListener listener;
+
     private WKTElement curElement;
     private List<WKTElement> elements;
-    private ElementChangeListener listener;
     @Nullable
     private File openFile;
     private boolean unsavedChanges;
@@ -36,6 +38,17 @@ public class WKTEditor {
         elements = new ArrayList<>();
         openFile = null;
         unsavedChanges = false;
+    }
+
+    /**
+     * Unloads the currently open file.<br>
+     * <b>Note</b>: This will delete all wkt data from ram. Unsaved changes will be gone!
+     */
+    private void unload() {
+        elements = new ArrayList<>();
+        openFile = null;
+        unsavedChanges = false;
+        curElement = null;
     }
 
     /**
@@ -127,6 +140,27 @@ public class WKTEditor {
     }
 
     /**
+     * Opens the specified file.
+     *
+     * @param file The file to open.
+     */
+    public void open(File file) {
+        unload();
+        notifyElementChanged();
+
+        try {
+            WKTReader wktReader = new WKTReader(file);
+            elements = wktReader.readElements();
+            wktReader.close();
+
+            openFile = file;
+        } catch (IOException exception) {
+            exception.printStackTrace();
+        }
+        notifyElementChanged();
+    }
+
+    /**
      * Save the edited wkt elements to the specified file.
      *
      * @param file The file to save the wkt elements to.
@@ -208,6 +242,13 @@ public class WKTEditor {
      */
     private void onElementChanged() {
         unsavedChanges = true;
+        notifyElementChanged();
+    }
+
+    /**
+     * Notifies the listener that an element has changed.
+     */
+    private void notifyElementChanged() {
         if (listener != null) {
             listener.onElementChanged();
         }

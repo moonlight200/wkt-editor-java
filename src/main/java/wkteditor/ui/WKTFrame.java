@@ -1,11 +1,13 @@
 package wkteditor.ui;
 
+import org.jetbrains.annotations.Nullable;
 import wkteditor.CursorMode;
 import wkteditor.WKTEditor;
+import wkteditor.ui.filefilter.ImageFileFilter;
+import wkteditor.ui.filefilter.WktFileFilter;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.filechooser.FileFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -300,8 +302,7 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
                 wktPane.setBackgroundImage(null);
                 break;
             case AC_OPEN:
-                // TODO check if file was saved
-                // TODO open new file
+                openFile();
                 break;
             case AC_SAVE:
                 saveWkt(editor.getOpenFile());
@@ -351,6 +352,28 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
     }
 
     /**
+     * Shows a file dialog to let the user select the file to open. Then opens the selected file.
+     * If there are unsaved changes, shows a dialog to let the user choose what to do with the changes.
+     */
+    private void openFile() {
+        final JFileChooser fc = new JFileChooser(getCurrentDirectory());
+        fc.setFileFilter(new WktFileFilter(strings));
+        final int result = fc.showOpenDialog(this);
+
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+        File openFile = fc.getSelectedFile();
+
+        if (editor.areThereUnsavedChanges()) {
+            // TODO ask user what to do
+        }
+
+        editor.open(openFile);
+        updateTitle();
+    }
+
+    /**
      * Shows a file dialog to let the user select the destination file. If a
      * file was selected, forwards the save operation to the {@link WKTEditor}.
      *
@@ -358,27 +381,8 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
      */
     private void saveWkt(File file) {
         if (file == null) {
-            final JFileChooser fc = new JFileChooser();
-            fc.setFileFilter(new FileFilter() {
-                @Override
-                public boolean accept(File file) {
-                    if (!file.isFile()) {
-                        return true;
-                    }
-
-                    String[] parts = file.getName().split("\\.");
-                    if (parts.length < 2) {
-                        return false;
-                    }
-                    String ext = parts[parts.length - 1].toLowerCase();
-                    return "wkt".equals(ext);
-                }
-
-                @Override
-                public String getDescription() {
-                    return strings.getString("fileFilter.wkt");
-                }
-            });
+            final JFileChooser fc = new JFileChooser(getCurrentDirectory());
+            fc.setFileFilter(new WktFileFilter(strings));
             final int result = fc.showSaveDialog(this);
 
             if (result == JFileChooser.APPROVE_OPTION) {
@@ -388,6 +392,7 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
 
         if (file != null) {
             editor.save(file);
+            updateTitle();
         }
     }
 
@@ -396,27 +401,8 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
      * image was selected, updates the {@link WKTPane} accordingly.
      */
     private void setBgImage() {
-        final JFileChooser fc = new JFileChooser();
-        fc.setFileFilter(new FileFilter() {
-            @Override
-            public boolean accept(File file) {
-                if (!file.isFile()) {
-                    return true;
-                }
-
-                String[] parts = file.getName().split("\\.");
-                if (parts.length < 2) {
-                    return false;
-                }
-                String ext = parts[parts.length - 1].toLowerCase();
-                return "png".equals(ext) || "jpg".equals(ext) || "jpeg".equals(ext);
-            }
-
-            @Override
-            public String getDescription() {
-                return strings.getString("fileFilter.images");
-            }
-        });
+        final JFileChooser fc = new JFileChooser(getCurrentDirectory());
+        fc.setFileFilter(new ImageFileFilter(strings));
         final int result = fc.showOpenDialog(this);
 
         if (result == JFileChooser.APPROVE_OPTION) {
@@ -444,6 +430,20 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
         for (ButtonModel model : endSubElementModels) {
             model.setEnabled(mode.isElement() && mode.hasSubElements());
         }
+    }
+
+    /**
+     * Gets the current directly that is used as a starting directory for file dialogs.
+     *
+     * @return The starting directory for file dialogs.
+     */
+    @Nullable
+    private File getCurrentDirectory() {
+        if (editor.getOpenFile() == null) {
+            return null;
+        }
+
+        return editor.getOpenFile().getParentFile();
     }
 
     @Override
