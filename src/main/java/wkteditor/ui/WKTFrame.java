@@ -55,7 +55,6 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
         endSubElementModels = new ArrayList<>(2);
 
         setLayout(new BorderLayout());
-        setTitle(strings.getString("name"));
 
         wktPane = new WKTPane(editor);
         add(wktPane, BorderLayout.CENTER);
@@ -69,6 +68,7 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
         setLocationRelativeTo(null);
 
         onModeChanged(editor.getCursorMode());
+        updateTitle();
 
         setVisible(true);
     }
@@ -261,6 +261,30 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
         return button;
     }
 
+    /**
+     * Updates the window title.
+     */
+    private void updateTitle() {
+        StringBuilder sb = new StringBuilder();
+
+        if (editor.areThereUnsavedChanges()) {
+            sb.append("*");
+            if (editor.getOpenFile() == null) {
+                sb.append(WKTEditor.DEFAULT_FILE_NAME);
+            } else {
+                sb.append(editor.getOpenFile().getName());
+            }
+            sb.append(" - ");
+        } else if (editor.getOpenFile() != null) {
+            sb.append(editor.getOpenFile().getName());
+            sb.append(" - ");
+        }
+
+        sb.append(strings.getString("name"));
+
+        setTitle(sb.toString());
+    }
+
     @Override
     public void actionPerformed(ActionEvent event) {
         String ac = event.getActionCommand();
@@ -424,6 +448,7 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
 
     @Override
     public void onElementChanged() {
+        updateTitle();
         wktPane.repaint();
     }
 }
