@@ -255,6 +255,13 @@ public class WKTEditor {
     }
 
     /**
+     * Called when the program exits.
+     */
+    public void shutdown() {
+        System.exit(0);
+    }
+
+    /**
      * A listener for element changes.
      */
     public interface ElementChangeListener {

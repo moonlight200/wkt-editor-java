@@ -9,9 +9,7 @@ import wkteditor.ui.filefilter.WktFileFilter;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -64,10 +62,39 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
 
         setJMenuBar(buildMenuBar());
 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setSize(1000, 600);
         setMinimumSize(new Dimension(200, 200));
         setLocationRelativeTo(null);
+
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent event) {
+                if (editor.areThereUnsavedChanges()) {
+                    final int result = showUnsavedChangesDialog("saveBeforeClose");
+
+                    switch (result) {
+                        case 0:
+                            // Save
+                            if (saveWkt(editor.getOpenFile())) {
+                                // Save succeeded
+                                dispose();
+                                editor.shutdown();
+                            }
+                            break;
+                        case 2:
+                            // Don't save
+                            dispose();
+                            editor.shutdown();
+                            break;
+                        default:
+                            // Cancel, or close dialog
+                            // Nothing to do
+                            break;
+                    }
+                }
+            }
+        });
 
         onModeChanged(editor.getCursorMode());
         updateTitle();
@@ -356,6 +383,25 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
      * If there are unsaved changes, shows a dialog to let the user choose what to do with the changes.
      */
     private void openFile() {
+        if (editor.areThereUnsavedChanges()) {
+            switch (showUnsavedChangesDialog("saveBeforeOpen")) {
+                case 0:
+                    // Save
+                    if (!saveWkt(editor.getOpenFile())) {
+                        // Save was canceled
+                        return;
+                    }
+                    break;
+                case 2:
+                    // Don't save
+                    // Nothing to do
+                    break;
+                default:
+                    // Cancel, or close dialog
+                    return;
+            }
+        }
+
         final JFileChooser fc = new JFileChooser(getCurrentDirectory());
         fc.setFileFilter(new WktFileFilter(strings));
         final int result = fc.showOpenDialog(this);
@@ -363,13 +409,8 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
         if (result != JFileChooser.APPROVE_OPTION) {
             return;
         }
-        File openFile = fc.getSelectedFile();
 
-        if (editor.areThereUnsavedChanges()) {
-            // TODO ask user what to do
-        }
-
-        editor.open(openFile);
+        editor.open(fc.getSelectedFile());
         updateTitle();
     }
 
@@ -378,8 +419,10 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
      * file was selected, forwards the save operation to the {@link WKTEditor}.
      *
      * @param file The file to save the wkt data to. Set to <code>null</code> to show file chooser dialog.
+     * @return Whether or not the save was performed (It might not have been if the user canceled the file chooser
+     * dialog).
      */
-    private void saveWkt(File file) {
+    private boolean saveWkt(File file) {
         if (file == null) {
             final JFileChooser fc = new JFileChooser(getCurrentDirectory());
             fc.setFileFilter(new WktFileFilter(strings));
@@ -393,7 +436,9 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
         if (file != null) {
             editor.save(file);
             updateTitle();
+            return true;
         }
+        return false;
     }
 
     /**
@@ -450,5 +495,33 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
     public void onElementChanged() {
         updateTitle();
         wktPane.repaint();
+    }
+
+    /**
+     * Show a dialog to ask the user what to do with unsaved changes to the currently opened file.
+     *
+     * @param dialogName The name of the dialog to display (used for sting resources).
+     * @return The selected option.<br>
+     * <ul>
+     * <li><code>0</code>: save</li>
+     * <li><code>1</code>: cancel</li>
+     * <li><code>2</code>: don't save</li>
+     * <li>{@link JOptionPane#CLOSED_OPTION}: dialog was closed without selecting an answer</li>
+     * </ul>
+     */
+    private int showUnsavedChangesDialog(final String dialogName) {
+        final String[] options = {
+                strings.getString("dialog.options.save"),
+                strings.getString("dialog.options.cancel"),
+                strings.getString("dialog.options.dontSave")
+        };
+        String fileName = WKTEditor.DEFAULT_FILE_NAME;
+        if (editor.getOpenFile() != null) {
+            fileName = editor.getOpenFile().getName();
+        }
+        final String message = String.format(strings.getString("dialog." + dialogName + ".message"), fileName);
+
+        return JOptionPane.showOptionDialog(this, message, strings.getString("dialog." + dialogName + ".title"),
+                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[2]);
     }
 }
