@@ -92,6 +92,9 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
                             // Nothing to do
                             break;
                     }
+                } else {
+                    dispose();
+                    editor.shutdown();
                 }
             }
         });
