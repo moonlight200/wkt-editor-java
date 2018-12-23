@@ -101,12 +101,10 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
      * @param y    The y-coordinate of the center of the zooming.
      */
     public void zoom(double diff, int x, int y) {
-        Transform transform = editor.getDisplayOptions().getTransform();
+        DisplayOptions dOpt = editor.getDisplayOptions();
+        Transform tfBeforeZoom = dOpt.getTransform();
 
-        int beforeZoomX = transform.reverseTransformX(x);
-        int beforeZoomY = transform.reverseTransformY(y);
-
-        double zoom = transform.getZoom();
+        double zoom = dOpt.getZoom();
         zoom += diff * 0.2;
         if (zoom < 0.1) {
             zoom = 0.1;
@@ -114,12 +112,12 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
         if (zoom > 5.0) {
             zoom = 5.0;
         }
-        transform.setZoom(zoom);
+        dOpt.setZoom(zoom);
 
-        int afterZoomX = transform.transformX(beforeZoomX);
-        int afterZoomY = transform.transformY(beforeZoomY);
-
-        transform.setTranslationRelative(x - afterZoomX, y - afterZoomY);
+        // Calculate offset caused by zoom
+        Transform tfAfterZoom = dOpt.getTransform();
+        dOpt.setTranslationRelative(x - tfAfterZoom.transformX(tfBeforeZoom.reverseTransformX(x)),
+                y - tfAfterZoom.transformY(tfBeforeZoom.reverseTransformY(y)));
 
         repaint();
     }
@@ -128,9 +126,9 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
      * Resets the zoom to the default value.
      */
     public void resetZoom() {
-        Transform transform = editor.getDisplayOptions().getTransform();
+        DisplayOptions dOpt = editor.getDisplayOptions();
 
-        transform.resetZoom();
+        dOpt.resetZoom();
         repaint();
     }
 
@@ -138,9 +136,9 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
      * Resets the view to its default values.
      */
     public void resetView() {
-        Transform transform = editor.getDisplayOptions().getTransform();
+        DisplayOptions dOpt = editor.getDisplayOptions();
 
-        transform.reset();
+        dOpt.reset();
         repaint();
     }
 
@@ -164,7 +162,7 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
     public void mouseDragged(MouseEvent event) {
         if (event.getModifiersEx() == MouseEvent.BUTTON3_DOWN_MASK) {
             if (dragX > 0 && dragY > 0) {
-                editor.getDisplayOptions().getTransform()
+                editor.getDisplayOptions()
                         .setTranslationRelative(event.getX() - dragX, event.getY() - dragY);
             }
             dragX = event.getX();

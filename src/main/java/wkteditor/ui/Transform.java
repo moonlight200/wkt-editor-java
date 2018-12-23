@@ -1,73 +1,17 @@
 package wkteditor.ui;
 
 /**
- * Stores and calculates the translation and zoom.
+ * Calculates the translation and zoom.
  */
 public class Transform {
-    private double translateX;
-    private double translateY;
-    private double zoom;
+    private final double translateX;
+    private final double translateY;
+    private final double zoom;
 
-    Transform() {
-        reset();
-    }
-
-    /**
-     * Resets all transformations.
-     */
-    public void reset() {
-        resetTranslation();
-        resetZoom();
-    }
-
-    /**
-     * Resets the zoom.
-     */
-    public void resetZoom() {
-        zoom = 1.0;
-    }
-
-    /**
-     * Resets the translation.
-     */
-    public void resetTranslation() {
-        translateX = 0;
-        translateY = 0;
-    }
-
-    /**
-     * Sets the zoom factor.
-     *
-     * @param zoom The new zoom factor.
-     */
-    void setZoom(double zoom) {
+    Transform(double translateX, double translateY, double zoom) {
+        this.translateX = translateX;
+        this.translateY = translateY;
         this.zoom = zoom;
-    }
-
-    double getZoom() {
-        return zoom;
-    }
-
-    /**
-     * Sets the translation.
-     *
-     * @param x The new translation in x direction.
-     * @param y The new translation in y direction.
-     */
-    void setTranslation(double x, double y) {
-        translateX = x;
-        translateY = y;
-    }
-
-    /**
-     * Adds the given translation to the current translation.
-     *
-     * @param x The difference in translation in x direction.
-     * @param y The difference in translation in y direction.
-     */
-    void setTranslationRelative(double x, double y) {
-        translateX += x;
-        translateY += y;
     }
 
     /**

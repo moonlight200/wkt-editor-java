@@ -6,12 +6,53 @@ package wkteditor.ui;
 public class DisplayOptions {
     private int pointRadius;
     private float lineWidth;
-    private Transform transform;
+
+    private double translateX;
+    private double translateY;
+    private double zoom;
 
     public DisplayOptions() {
+        reset();
+    }
+
+    /**
+     * Resets all display options.
+     */
+    public void reset() {
+        resetView();
+        resetGraphics();
+    }
+
+    /**
+     * Resets the display options used with the graphics of an element.
+     */
+    public void resetGraphics() {
         pointRadius = 4;
         lineWidth = 2.0f;
-        transform = new Transform();
+    }
+
+    /**
+     * Resets the display options related to the view (transformation) of
+     * elements.
+     */
+    public void resetView() {
+        resetTranslation();
+        resetZoom();
+    }
+
+    /**
+     * Resets the zoom.
+     */
+    public void resetZoom() {
+        zoom = 1.0;
+    }
+
+    /**
+     * Resets the translation.
+     */
+    public void resetTranslation() {
+        translateX = 0;
+        translateY = 0;
     }
 
     /**
@@ -59,7 +100,48 @@ public class DisplayOptions {
         return lineWidth;
     }
 
+    /**
+     * Sets the zoom factor.
+     *
+     * @param zoom The new zoom factor.
+     */
+    void setZoom(double zoom) {
+        this.zoom = zoom;
+    }
+
+    double getZoom() {
+        return zoom;
+    }
+
+    /**
+     * Sets the translation.
+     *
+     * @param x The new translation in x direction.
+     * @param y The new translation in y direction.
+     */
+    void setTranslation(double x, double y) {
+        translateX = x;
+        translateY = y;
+    }
+
+    /**
+     * Adds the given translation to the current translation.
+     *
+     * @param x The difference in translation in x direction.
+     * @param y The difference in translation in y direction.
+     */
+    void setTranslationRelative(double x, double y) {
+        translateX += x;
+        translateY += y;
+    }
+
+    /**
+     * Builds a new transform object with the current display options.
+     * Subsequent changes to the display options will not affect the transform.
+     *
+     * @return A new transform object.
+     */
     public Transform getTransform() {
-        return transform;
+        return new Transform(translateX, translateY, zoom);
     }
 }
