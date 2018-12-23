@@ -1,9 +1,18 @@
 package wkteditor.ui;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * The display options define how the wkt elements are drawn within the editor.
  */
 public class DisplayOptions {
+    private static final int DEFAULT_POINT_RADIUS = 4;
+    private static final float DEFAULT_LINE_WIDTH = 2.0f;
+    private static final double DEFAULT_TRANSLATE_X = 0.0;
+    private static final double DEFAULT_TRANSLATE_Y = 0.0;
+    private static final double DEFAULT_ZOOM = 1.0;
+
     private int pointRadius;
     private float lineWidth;
 
@@ -11,8 +20,35 @@ public class DisplayOptions {
     private double translateY;
     private double zoom;
 
+    private List<ChangeListener> changeListeners;
+
     public DisplayOptions() {
-        reset();
+        changeListeners = new ArrayList<>();
+
+        pointRadius = DEFAULT_POINT_RADIUS;
+        lineWidth = DEFAULT_LINE_WIDTH;
+        translateX = DEFAULT_TRANSLATE_X;
+        translateY = DEFAULT_TRANSLATE_Y;
+        zoom = DEFAULT_ZOOM;
+    }
+
+    /**
+     * Add a listener, that will be notified whenever one of the values changes.
+     *
+     * @param listener The listener to be notified.
+     */
+    public void addChangeListener(ChangeListener listener) {
+        changeListeners.add(listener);
+    }
+
+    /**
+     * Removes the listener, that is being notified whenever one of the values
+     * changes.
+     *
+     * @param listener The listener to remove.
+     */
+    public void removeChangeListener(ChangeListener listener) {
+        changeListeners.remove(listener);
     }
 
     /**
@@ -27,8 +63,8 @@ public class DisplayOptions {
      * Resets the display options used with the graphics of an element.
      */
     public void resetGraphics() {
-        pointRadius = 4;
-        lineWidth = 2.0f;
+        setPointRadius(DEFAULT_POINT_RADIUS);
+        setLineWidth(DEFAULT_LINE_WIDTH);
     }
 
     /**
@@ -44,15 +80,14 @@ public class DisplayOptions {
      * Resets the zoom.
      */
     public void resetZoom() {
-        zoom = 1.0;
+        setZoom(DEFAULT_ZOOM);
     }
 
     /**
      * Resets the translation.
      */
     public void resetTranslation() {
-        translateX = 0;
-        translateY = 0;
+        setTranslation(DEFAULT_TRANSLATE_X, DEFAULT_TRANSLATE_Y);
     }
 
     /**
@@ -76,19 +111,25 @@ public class DisplayOptions {
     /**
      * Sets the radius of a point.
      *
-     * @param pointRadius The new radius.
+     * @param radius The new radius.
      */
-    public void setPointRadius(int pointRadius) {
-        this.pointRadius = pointRadius;
+    public void setPointRadius(int radius) {
+        final int old = pointRadius;
+        pointRadius = radius;
+
+        notifyPointRadiusChange(old, pointRadius);
     }
 
     /**
      * Sets the width of a line.
      *
-     * @param lineWidth The new line width.
+     * @param width The new line width.
      */
-    public void setLineWidth(float lineWidth) {
-        this.lineWidth = lineWidth;
+    public void setLineWidth(float width) {
+        final float old = lineWidth;
+        lineWidth = width;
+
+        notifyLineWidthChange(old, lineWidth);
     }
 
     /**
@@ -106,7 +147,10 @@ public class DisplayOptions {
      * @param zoom The new zoom factor.
      */
     void setZoom(double zoom) {
+        final double old = this.zoom;
         this.zoom = zoom;
+
+        notifyZoomChange(old, this.zoom);
     }
 
     double getZoom() {
@@ -120,8 +164,12 @@ public class DisplayOptions {
      * @param y The new translation in y direction.
      */
     void setTranslation(double x, double y) {
+        final double oldX = translateX;
+        final double oldY = translateY;
         translateX = x;
         translateY = y;
+
+        notifyTranslationChange(oldX, oldY, translateX, translateY);
     }
 
     /**
@@ -131,8 +179,12 @@ public class DisplayOptions {
      * @param y The difference in translation in y direction.
      */
     void setTranslationRelative(double x, double y) {
+        final double oldX = translateX;
+        final double oldY = translateY;
         translateX += x;
         translateY += y;
+
+        notifyTranslationChange(oldX, oldY, translateX, translateY);
     }
 
     /**
@@ -143,5 +195,115 @@ public class DisplayOptions {
      */
     public Transform getTransform() {
         return new Transform(translateX, translateY, zoom);
+    }
+
+    /**
+     * Notifies all listeners, that the point radius value has changed.
+     *
+     * @param oldRadius The old point radius.
+     * @param newRadius The new point radius.
+     */
+    private void notifyPointRadiusChange(final int oldRadius, final int newRadius) {
+        if (oldRadius == newRadius) {
+            // Nothing changed, no need to notify
+            return;
+        }
+
+        for (ChangeListener listener : changeListeners) {
+            listener.pointRadiusChanged(oldRadius, newRadius);
+        }
+    }
+
+    /**
+     * Notifies all listeners, that the line width value has changed.
+     *
+     * @param oldWidth The old line width.
+     * @param newWidth The new line width.
+     */
+    private void notifyLineWidthChange(final float oldWidth, final float newWidth) {
+        if (oldWidth == newWidth) {
+            // Nothing changed, no need to notify
+            return;
+        }
+
+        for (ChangeListener listener : changeListeners) {
+            listener.lineWidthChanged(oldWidth, newWidth);
+        }
+    }
+
+    /**
+     * Notifies all listeners, that the translation values have changed.
+     *
+     * @param oldX The old translation in horizontal direction.
+     * @param oldY The old translation in vertical direction.
+     * @param newX The new translation in horizontal direction.
+     * @param newY The new translation in vertical direction.
+     */
+    private void notifyTranslationChange(final double oldX, final double oldY,
+                                         final double newX, final double newY) {
+        if (oldX == newX && oldY == newY) {
+            // Nothing changed, no need to notify
+            return;
+        }
+
+        for (ChangeListener listener : changeListeners) {
+            listener.translationChanged(oldX, oldY, newX, newY);
+        }
+    }
+
+    /**
+     * Notifies all listeners, that the zoom value has changed.
+     *
+     * @param oldZoom The old zoom.
+     * @param newZoom The new zoom.
+     */
+    private void notifyZoomChange(final double oldZoom, final double newZoom) {
+        if (oldZoom == newZoom) {
+            // Nothing changed, no need to notify
+            return;
+        }
+
+        for (ChangeListener listener : changeListeners) {
+            listener.zoomChanged(oldZoom, newZoom);
+        }
+    }
+
+    /**
+     * Will be notified whenever a variable changes.
+     */
+    public interface ChangeListener {
+        /**
+         * Called when the value of the point radius changes.
+         *
+         * @param oldRadius The old point radius.
+         * @param newRadius The new point radius.
+         */
+        void pointRadiusChanged(int oldRadius, int newRadius);
+
+        /**
+         * Called when the value of the line width changes.
+         *
+         * @param oldWidth The old line width.
+         * @param newWidth The new line width.
+         */
+        void lineWidthChanged(float oldWidth, float newWidth);
+
+        /**
+         * Called when the translation values change.
+         *
+         * @param oldX The old translation in horizontal direction.
+         * @param oldY The old translation in vertical direction.
+         * @param newX The new translation in horizontal direction.
+         * @param newY The new translation in vertical direction.
+         */
+        void translationChanged(double oldX, double oldY, double newX, double newY);
+
+        /**
+         * Called when the value of the zoom changes.
+         *
+         * @param oldZoom The old zoom.
+         * @param newZoom The new zoom.
+         */
+        void zoomChanged(double oldZoom, double newZoom);
     }
 }

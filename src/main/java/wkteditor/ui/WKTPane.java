@@ -6,13 +6,16 @@ import wkteditor.WKTElement;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
 
 /**
  * This pane displays the wkt elements, that are being edited.
  */
 public class WKTPane extends JComponent implements MouseListener, MouseMotionListener, MouseWheelListener {
     private WKTEditor editor;
-    private Image bgImage;
+    private BufferedImage bgImage;
+    private BufferedImage bgImageScaled;
 
     private int dragX;
     private int dragY;
@@ -26,6 +29,28 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
         addMouseListener(this);
         addMouseMotionListener(this);
         addMouseWheelListener(this);
+
+        editor.getDisplayOptions().addChangeListener(new DisplayOptions.ChangeListener() {
+            @Override
+            public void pointRadiusChanged(int oldRadius, int newRadius) {
+
+            }
+
+            @Override
+            public void lineWidthChanged(float oldWidth, float newWidth) {
+
+            }
+
+            @Override
+            public void translationChanged(double oldX, double oldY, double newX, double newY) {
+
+            }
+
+            @Override
+            public void zoomChanged(double oldZoom, double newZoom) {
+                scaleBackgroundImage(newZoom);
+            }
+        });
     }
 
     /**
@@ -34,36 +59,57 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
      * @param image The new image to display, or <code>null</code> to remove the
      *              image.
      */
-    public void setBackgroundImage(Image image) {
+    public void setBackgroundImage(BufferedImage image) {
         bgImage = image;
+        scaleBackgroundImage(editor.getDisplayOptions().getZoom());
         repaint();
+    }
+
+    /**
+     * Scales the background image and caches the result.
+     *
+     * @param scale The scaled to apply to the background image.
+     */
+    private void scaleBackgroundImage(double scale) {
+        if (bgImage == null) {
+            bgImageScaled = null;
+            return;
+        }
+
+        final int scaledWidth = (int) (bgImage.getWidth() * scale);
+        final int scaledHeight = (int) (bgImage.getHeight() * scale);
+
+        bgImageScaled = new BufferedImage(scaledWidth, scaledHeight, bgImage.getType());
+        Graphics2D g2d = bgImageScaled.createGraphics();
+        AffineTransform affineTransform = AffineTransform.getScaleInstance(scale, scale);
+        g2d.drawRenderedImage(bgImage, affineTransform);
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2d = (Graphics2D) g.create();
-        DisplayOptions opt = editor.getDisplayOptions();
+        DisplayOptions dOpt = editor.getDisplayOptions();
+        Transform transform = dOpt.getTransform();
 
         // Background
         g2d.setColor(getBackground());
         g2d.fillRect(0, 0, getWidth(), getHeight());
 
-        if (bgImage != null) {
-            Transform transform = editor.getDisplayOptions().getTransform();
-            g2d.drawImage(bgImage, transform.transformX(0), transform.transformY(0),
-                    transform.zoom(bgImage.getWidth(null)), transform.zoom(bgImage.getHeight(null)), null);
+        if (bgImageScaled != null) {
+            g2d.drawImage(bgImageScaled, transform.transformX(0), transform.transformY(0),
+                    null);
         }
 
         // Foreground
         g2d.setColor(getForeground());
         for (WKTElement element : editor.getElements()) {
-            element.paint(g2d, opt);
+            element.paint(g2d, dOpt);
         }
 
         WKTElement curElement = editor.getCurrentElement();
         if (curElement != null) {
             g2d.setColor(new Color(255, 95, 74));
-            curElement.paint(g2d, opt);
+            curElement.paint(g2d, dOpt);
         }
     }
 
