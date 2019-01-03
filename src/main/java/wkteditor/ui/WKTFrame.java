@@ -346,17 +346,23 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
                 onModeChanged(CursorMode.SELECT);
                 break;
             case AC_CURSOR_POINT:
-                editor.endCurrentElement();
+                if (editor.getCursorMode() != CursorMode.SELECT) {
+                    editor.endCurrentElement();
+                }
                 editor.setCursorMode(CursorMode.POINT);
                 onModeChanged(CursorMode.POINT);
                 break;
             case AC_CURSOR_LINE:
-                editor.endCurrentElement();
+                if (editor.getCursorMode() != CursorMode.SELECT) {
+                    editor.endCurrentElement();
+                }
                 editor.setCursorMode(CursorMode.LINE);
                 onModeChanged(CursorMode.LINE);
                 break;
             case AC_CURSOR_POLYGON:
-                editor.endCurrentElement();
+                if (editor.getCursorMode() != CursorMode.SELECT) {
+                    editor.endCurrentElement();
+                }
                 editor.setCursorMode(CursorMode.POLYGON);
                 onModeChanged(CursorMode.POLYGON);
                 break;

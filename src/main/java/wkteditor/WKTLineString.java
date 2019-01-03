@@ -4,6 +4,7 @@ import wkteditor.ui.DisplayOptions;
 import wkteditor.ui.Transform;
 
 import java.awt.*;
+import java.awt.geom.Line2D;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Objects;
@@ -64,6 +65,31 @@ public class WKTLineString extends WKTElement {
 
             prev = cur;
         }
+    }
+
+    @Override
+    public boolean isOnElement(double x, double y, double maxDistance) {
+        final double maxDistanceSq = maxDistance * maxDistance;
+        WKTPoint prev = null;
+
+        for (WKTPoint cur : points) {
+            // Check if on current point
+            if (cur.isOnElement(x, y, maxDistance)) {
+                return true;
+            }
+
+            // Check line segment
+            if (prev != null) {
+                double distance = Line2D.ptSegDistSq(prev.getX(), prev.getY(), cur.getX(), cur.getY(), x, y);
+                if (distance <= maxDistanceSq) {
+                    return true;
+                }
+            }
+
+            prev = cur;
+        }
+
+        return false;
     }
 
     @Override

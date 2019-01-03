@@ -1,5 +1,6 @@
 package wkteditor;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import wkteditor.io.WKTReader;
 import wkteditor.ui.DisplayOptions;
@@ -8,6 +9,8 @@ import wkteditor.ui.WKTFrame;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,7 +29,8 @@ public class WKTEditor {
     private CursorMode cursorMode;
     private ElementChangeListener listener;
 
-    private WKTElement curElement;
+    @NotNull
+    private WeakReference<WKTElement> curElement;
     private List<WKTElement> elements;
     @Nullable
     private File openFile;
@@ -38,6 +42,7 @@ public class WKTEditor {
         elements = new ArrayList<>();
         openFile = null;
         unsavedChanges = false;
+        curElement = new WeakReference<>(null);
     }
 
     /**
@@ -48,7 +53,6 @@ public class WKTEditor {
         elements = new ArrayList<>();
         openFile = null;
         unsavedChanges = false;
-        curElement = null;
     }
 
     /**
@@ -104,8 +108,9 @@ public class WKTEditor {
      *
      * @return The wkt element selected for editing.
      */
+    @Nullable
     public WKTElement getCurrentElement() {
-        return curElement;
+        return curElement.get();
     }
 
     /**
@@ -115,12 +120,11 @@ public class WKTEditor {
      * @see #endCurrentSubElement()
      */
     public void endCurrentElement() {
-        if (curElement == null) {
+        WKTElement elem = curElement.get();
+        if (elem == null) {
             return;
         }
-
-        elements.add(curElement);
-        curElement = null;
+        curElement = new WeakReference<>(null);
         onElementChanged();
     }
 
@@ -135,7 +139,12 @@ public class WKTEditor {
             return;
         }
 
-        curElement.endSubElement();
+        WKTElement elem = curElement.get();
+        if (elem == null) {
+            return;
+        }
+
+        elem.endSubElement();
         onElementChanged();
     }
 
@@ -201,6 +210,23 @@ public class WKTEditor {
     }
 
     /**
+     * Selects an element based on the given coordinates.
+     *
+     * @param x The x-coordinate of the selection.
+     * @param y The y-coordinate of the selection.
+     * @return The element that was selected, or <code>null</code> if no element
+     * was selected.
+     */
+    public WKTElement getSelectedElement(int x, int y) {
+        for (WKTElement element : elements) {
+            if (element.isOnElement(x, y, 3.0)) {
+                return element;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Adds the specified point to the currently edited element. If no element
      * is being edited, a new one will be created.
      *
@@ -209,30 +235,40 @@ public class WKTEditor {
      */
     public void addPoint(int x, int y) {
         if (!cursorMode.isElement()) {
-            // TODO select element
+            // Select element
+            WKTElement selected = getSelectedElement(x, y);
+            curElement = new WeakReference<>(selected);
+            onElementChanged();
+
             return;
         }
 
-        // Add point to current element
-        if (curElement != null && curElement.getClass() != cursorMode.getWktClass()) {
+        WKTElement element = curElement.get();
+        if (element != null && element.getClass() != cursorMode.getWktClass()) {
             System.err.println("Cursor mode changed without ending previous element!");
             endCurrentElement();
         }
 
-        if (curElement != null && !curElement.canAdd()) {
+        element = curElement.get();
+        if (element != null && !element.canAdd()) {
             endCurrentElement();
         }
 
-        if (curElement == null) {
+        element = curElement.get();
+        if (element == null) {
             try {
-                curElement = cursorMode.getWktClass().newInstance();
-            } catch (InstantiationException | IllegalAccessException exception) {
+                element = cursorMode.getWktClass().getConstructor().newInstance();
+                elements.add(element);
+                curElement = new WeakReference<>(element);
+            } catch (InstantiationException | IllegalAccessException |
+                    NoSuchMethodException | InvocationTargetException exception) {
                 exception.printStackTrace();
                 return;
             }
         }
 
-        curElement.add(x, y);
+        // Add point to current element
+        element.add(x, y);
         onElementChanged();
     }
 

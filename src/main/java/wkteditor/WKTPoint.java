@@ -81,6 +81,14 @@ public class WKTPoint extends WKTElement {
     }
 
     @Override
+    public boolean isOnElement(double x, double y, double maxDistance) {
+        double dx = this.x - x;
+        double dy = this.y - y;
+
+        return dx * dx + dy * dy <= maxDistance * maxDistance;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;

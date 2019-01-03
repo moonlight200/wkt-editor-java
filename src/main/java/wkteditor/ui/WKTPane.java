@@ -1,5 +1,6 @@
 package wkteditor.ui;
 
+import org.jetbrains.annotations.NotNull;
 import wkteditor.WKTEditor;
 import wkteditor.WKTElement;
 
@@ -8,6 +9,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.lang.ref.WeakReference;
 
 /**
  * This pane displays the wkt elements, that are being edited.
@@ -17,6 +19,9 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
     private BufferedImage bgImage;
     private BufferedImage bgImageScaled;
 
+    @NotNull
+    private WeakReference<WKTElement> hoverElement;
+
     private int dragX;
     private int dragY;
 
@@ -24,6 +29,7 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
         this.editor = editor;
         dragX = -1;
         dragY = -1;
+        hoverElement = new WeakReference<>(null);
 
         setPreferredSize(new Dimension(200, 200));
         addMouseListener(this);
@@ -101,15 +107,18 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
         }
 
         // Foreground
-        g2d.setColor(getForeground());
+        WKTElement selectElement = editor.getCurrentElement();
+        WKTElement highlightElement = hoverElement.get();
         for (WKTElement element : editor.getElements()) {
-            element.paint(g2d, dOpt);
-        }
+            if (element.equals(selectElement)) {
+                g2d.setColor(dOpt.getSelectColor());
+            } else if (element.equals(highlightElement)) {
+                g2d.setColor(dOpt.getHighlightColor());
+            } else {
+                g2d.setColor(getForeground());
+            }
 
-        WKTElement curElement = editor.getCurrentElement();
-        if (curElement != null) {
-            g2d.setColor(new Color(255, 95, 74));
-            curElement.paint(g2d, dOpt);
+            element.paint(g2d, dOpt);
         }
     }
 
@@ -219,7 +228,24 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
 
     @Override
     public void mouseMoved(MouseEvent event) {
-        // Ignored
+        Transform transform = editor.getDisplayOptions().getTransform();
+
+        WKTElement element = editor.getSelectedElement(
+                transform.reverseTransformX(event.getX()),
+                transform.reverseTransformY(event.getY()));
+        WKTElement hover = hoverElement.get();
+
+        if (element == null) {
+            if (hover != null) {
+                hoverElement = new WeakReference<>(null);
+                repaint();
+            }
+        } else {
+            if (!element.equals(hover)) {
+                hoverElement = new WeakReference<>(element);
+                repaint();
+            }
+        }
     }
 
     @Override

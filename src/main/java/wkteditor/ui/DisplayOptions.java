@@ -1,5 +1,6 @@
 package wkteditor.ui;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,12 +10,16 @@ import java.util.List;
 public class DisplayOptions {
     private static final int DEFAULT_POINT_RADIUS = 4;
     private static final float DEFAULT_LINE_WIDTH = 2.0f;
+    private static final Color DEFAULT_COLOR_SELECT = new Color(255, 95, 74);
+    private static final Color DEFAULT_COLOR_HIGHLIGHT = new Color(255, 166, 154);
     private static final double DEFAULT_TRANSLATE_X = 0.0;
     private static final double DEFAULT_TRANSLATE_Y = 0.0;
     private static final double DEFAULT_ZOOM = 1.0;
 
     private int pointRadius;
     private float lineWidth;
+    private Color colorSelect;
+    private Color colorHighlight;
 
     private double translateX;
     private double translateY;
@@ -27,6 +32,8 @@ public class DisplayOptions {
 
         pointRadius = DEFAULT_POINT_RADIUS;
         lineWidth = DEFAULT_LINE_WIDTH;
+        colorSelect = DEFAULT_COLOR_SELECT;
+        colorHighlight = DEFAULT_COLOR_HIGHLIGHT;
         translateX = DEFAULT_TRANSLATE_X;
         translateY = DEFAULT_TRANSLATE_Y;
         zoom = DEFAULT_ZOOM;
@@ -106,6 +113,25 @@ public class DisplayOptions {
      */
     public int getPointDiameter() {
         return pointRadius * 2;
+    }
+
+    /**
+     * Gets the color used for a highlighted element, such as when the cursor
+     * hovers over an element.
+     *
+     * @return The color for highlighted elements.
+     */
+    public Color getHighlightColor() {
+        return colorHighlight;
+    }
+
+    /**
+     * Gets the color used for the selected element.
+     *
+     * @return The color for the selected element.
+     */
+    public Color getSelectColor() {
+        return colorSelect;
     }
 
     /**

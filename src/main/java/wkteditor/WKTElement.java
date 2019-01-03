@@ -48,6 +48,18 @@ public abstract class WKTElement {
     public abstract void paint(Graphics2D g, DisplayOptions opt);
 
     /**
+     * Checks if the given coordinates are on this element, or within
+     * <code>maxDistance</code> of any part of this element.
+     *
+     * @param x           The x-coordinate or the point to check.
+     * @param y           The y-coordinate of the point to check.
+     * @param maxDistance The maximum distance between the point and any part of
+     *                    this element.
+     * @return Whether the given point is on the element.
+     */
+    public abstract boolean isOnElement(double x, double y, double maxDistance);
+
+    /**
      * Ends the current sub element and starts a new one.
      */
     public void endSubElement() {
