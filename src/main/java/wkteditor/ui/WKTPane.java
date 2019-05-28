@@ -1,6 +1,7 @@
 package wkteditor.ui;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import wkteditor.CursorMode;
 import wkteditor.WKTEditor;
 import wkteditor.WKTElement;
@@ -11,11 +12,12 @@ import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.lang.ref.WeakReference;
+import java.util.Set;
 
 /**
  * This pane displays the wkt elements, that are being edited.
  */
-public class WKTPane extends JComponent implements MouseListener, MouseMotionListener, MouseWheelListener {
+public class WKTPane extends JComponent implements MouseListener, MouseMotionListener, MouseWheelListener, WKTEditor.SelectionChangedListener {
     private WKTEditor editor;
     private BufferedImage bgImage;
     private BufferedImage bgImageScaled;
@@ -26,13 +28,16 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
     private int dragX;
     private int dragY;
 
+    @Nullable
     private Rectangle select;
+    private Rectangle selectionContainer;
 
     public WKTPane(WKTEditor editor) {
         this.editor = editor;
         dragX = -1;
         dragY = -1;
-        select = new Rectangle(-1, -1, 0, 0);
+        select = null;
+        selectionContainer = null;
         hoverElement = new WeakReference<>(null);
 
         setPreferredSize(new Dimension(200, 200));
@@ -124,8 +129,15 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
             element.paint(g2d, dOpt);
         }
 
+        g2d.setStroke(new BasicStroke(1));
+
         // Selection
-        if (select.x >= 0 && select.y >= 0) {
+        if (selectionContainer != null) {
+            g2d.setColor(new Color(128, 128, 128, 84));
+            g2d.drawRect(selectionContainer.x, selectionContainer.y, selectionContainer.width, selectionContainer.height);
+        }
+
+        if (select != null) {
             final int x = select.x + Math.min(select.width, 0);
             final int y = select.y + Math.min(select.height, 0);
             final int w = Math.abs(select.width);
@@ -151,8 +163,7 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
     public void mousePressed(MouseEvent event) {
         if (event.getButton() == MouseEvent.BUTTON1) {
             if (editor.getCursorMode() == CursorMode.SELECT) {
-                select.x = event.getX();
-                select.y = event.getY();
+                select = new Rectangle(event.getX(), event.getY(), 0, 0);
             }
         } else if (event.getButton() == MouseEvent.BUTTON3) {
             dragX = event.getX();
@@ -221,9 +232,8 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
     @Override
     public void mouseReleased(MouseEvent event) {
         if (event.getButton() == MouseEvent.BUTTON1) {
-            if (editor.getCursorMode() != CursorMode.SELECT || select.x < 0 || select.y < 0 || (select.x == event.getX() && select.y == event.getY())) {
-                select.x = -1;
-                select.y = -1;
+            if (editor.getCursorMode() != CursorMode.SELECT || select == null || (select.x == event.getX() && select.y == event.getY())) {
+                select = null;
                 return;
             }
 
@@ -234,8 +244,7 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
                     transform.reverseZoom(Math.abs(select.width)),
                     transform.reverseZoom(Math.abs(select.height))));
 
-            select.x = -1;
-            select.y = -1;
+            select = null;
             repaint();
         } else if (event.getButton() == MouseEvent.BUTTON3) {
             dragX = -1;
@@ -256,7 +265,7 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
     @Override
     public void mouseDragged(MouseEvent event) {
         if (event.getModifiersEx() == MouseEvent.BUTTON1_DOWN_MASK) {
-            if (select.x < 0 || select.y < 0) {
+            if (select == null) {
                 return;
             }
 
@@ -299,5 +308,28 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
     @Override
     public void mouseWheelMoved(MouseWheelEvent event) {
         zoom(-event.getPreciseWheelRotation(), event.getX(), event.getY());
+    }
+
+    @Override
+    public void onSelectionChanged(Set<WKTElement> selection) {
+        selectionContainer = null;
+        for (WKTElement element : selection) {
+            if (selectionContainer == null) {
+                selectionContainer = element.getContainingRect();
+            } else {
+                selectionContainer = selectionContainer.union(element.getContainingRect());
+            }
+        }
+
+        if (selectionContainer != null) {
+            DisplayOptions dOpt = editor.getDisplayOptions();
+            Transform transform = dOpt.getTransform();
+            selectionContainer.x = transform.transformX(selectionContainer.x) - dOpt.getPointRadius();
+            selectionContainer.y = transform.transformY(selectionContainer.y) - dOpt.getPointRadius();
+            selectionContainer.width = transform.zoom(selectionContainer.width) + dOpt.getPointDiameter();
+            selectionContainer.height = transform.zoom(selectionContainer.height) + dOpt.getPointDiameter();
+        }
+
+        repaint();
     }
 }

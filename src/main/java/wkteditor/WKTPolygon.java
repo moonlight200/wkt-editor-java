@@ -109,6 +109,8 @@ public class WKTPolygon extends WKTElement {
                         transform.transformX(last.getX()), transform.transformY(last.getY()));
             }
         }
+
+        g.setStroke(strokeNormal);
     }
 
     @Override
@@ -149,6 +151,28 @@ public class WKTPolygon extends WKTElement {
             }
         }
         return true;
+    }
+
+    @Override
+    public Rectangle getContainingRect() {
+        if (subPolygons.isEmpty()) {
+            return null;
+        }
+
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+
+        for (LinkedList<WKTPoint> subPoly : subPolygons) {
+            for (WKTPoint point : subPoly) {
+                minX = Math.min(minX, point.getX());
+                minY = Math.min(minY, point.getY());
+                maxX = Math.max(maxX, point.getX());
+                maxY = Math.max(maxY, point.getY());
+            }
+        }
+        return new Rectangle(minX, minY, maxX - minX, maxY - minY);
     }
 
     @Override

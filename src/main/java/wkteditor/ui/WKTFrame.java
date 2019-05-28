@@ -102,6 +102,9 @@ public class WKTFrame extends JFrame implements ActionListener, WKTEditor.Elemen
         onModeChanged(editor.getCursorMode());
         updateTitle();
 
+        editor.addElementChangeListener(this);
+        editor.addSelectionChangeListener(wktPane);
+
         setVisible(true);
     }
 

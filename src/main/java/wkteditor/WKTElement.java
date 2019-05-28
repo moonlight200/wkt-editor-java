@@ -68,6 +68,13 @@ public abstract class WKTElement {
     public abstract boolean isContainedBy(Rectangle rect);
 
     /**
+     * Builds the smallest rectangle that fully contains this element.
+     *
+     * @return A rectangle that fully contains this element.
+     */
+    public abstract Rectangle getContainingRect();
+
+    /**
      * Ends the current sub element and starts a new one.
      */
     public void endSubElement() {

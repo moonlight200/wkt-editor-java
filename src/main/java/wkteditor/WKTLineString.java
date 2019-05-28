@@ -103,6 +103,26 @@ public class WKTLineString extends WKTElement {
     }
 
     @Override
+    public Rectangle getContainingRect() {
+        if (points.isEmpty()) {
+            return null;
+        }
+
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+
+        for (WKTPoint point : points) {
+            minX = Math.min(minX, point.getX());
+            minY = Math.min(minY, point.getY());
+            maxX = Math.max(maxX, point.getX());
+            maxY = Math.max(maxY, point.getY());
+        }
+        return new Rectangle(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;

@@ -17,16 +17,15 @@ import java.util.*;
 
 public class WKTEditor {
     public static void main(String[] args) {
-        WKTEditor editor = new WKTEditor();
-        WKTFrame frame = new WKTFrame(editor);
-        editor.setElementChangeListener(frame);
+        new WKTFrame(new WKTEditor());
     }
 
     public static final String DEFAULT_FILE_NAME = "Unnamed Geometry.wkt";
 
     private DisplayOptions displayOpt;
     private CursorMode cursorMode;
-    private ElementChangeListener listener;
+    private List<ElementChangeListener> elementListeners;
+    private List<SelectionChangedListener> selectionListeners;
 
     @NotNull
     private Set<WKTElement> selection;
@@ -42,6 +41,9 @@ public class WKTEditor {
         openFile = null;
         unsavedChanges = false;
         selection = new HashSet<>();
+
+        elementListeners = new ArrayList<>();
+        selectionListeners = new ArrayList<>();
     }
 
     /**
@@ -55,12 +57,39 @@ public class WKTEditor {
     }
 
     /**
-     * Sets a listener that is notified whenever a wkt element changes.
+     * Adds the given listener, so that it is notified whenever a wkt element changes.
      *
-     * @param listener The listener to set.
+     * @param listener The listener to add.
      */
-    public void setElementChangeListener(ElementChangeListener listener) {
-        this.listener = listener;
+    public void addElementChangeListener(ElementChangeListener listener) {
+        elementListeners.add(listener);
+    }
+
+    /**
+     * Removes the given listener, so that it is no longer notified when a wkt element changes.
+     *
+     * @param listener The listener to remove.
+     */
+    public void removeElementChangeListener(ElementChangeListener listener) {
+        elementListeners.remove(listener);
+    }
+
+    /**
+     * Adds the given listener, so that it is notified whenever the selection changes.
+     *
+     * @param listener The listener to add.
+     */
+    public void addSelectionChangeListener(SelectionChangedListener listener) {
+        selectionListeners.add(listener);
+    }
+
+    /**
+     * Removes the given listener, so that it is no longer notified when the selection changes.
+     *
+     * @param listener The listener to remove.
+     */
+    public void removeSelectionChangeListener(SelectionChangedListener listener) {
+        selectionListeners.remove(listener);
     }
 
     /**
@@ -113,16 +142,40 @@ public class WKTEditor {
     }
 
     /**
+     * Gets the set of selected elements.
+     *
+     * @return The set of selected elements.
+     */
+    public Set<WKTElement> getSelection() {
+        return selection;
+    }
+
+    /**
      * Gets the wkt element that is currently being edited.
      *
      * @return The wkt element selected for editing.
      */
     @Nullable
-    public WKTElement getCurrentElement() {
+    private WKTElement getCurrentElement() {
         if (selection.size() != 1) {
             return null;
         }
         return selection.stream().findAny().get();
+    }
+
+    /**
+     * Sets the wkt element that is currently being edited.
+     *
+     * @param element The wkt element to select for editing.
+     */
+    private void setCurrentElement(WKTElement element) {
+        if (selection.size() == 1 && selection.contains(element)) {
+            return;
+        }
+
+        selection.clear();
+        selection.add(element);
+        notifySelectionChanged();
     }
 
     /**
@@ -137,6 +190,7 @@ public class WKTEditor {
             return;
         }
         selection.clear();
+        notifySelectionChanged();
         onElementChanged();
     }
 
@@ -250,6 +304,7 @@ public class WKTEditor {
                 selection.add(element);
             }
         }
+        notifySelectionChanged();
     }
 
     /**
@@ -263,8 +318,7 @@ public class WKTEditor {
         if (!cursorMode.isElement()) {
             // Select element
             WKTElement selected = getSelectedElement(x, y);
-            selection.clear();
-            selection.add(selected);
+            setCurrentElement(selected);
             onElementChanged();
 
             return;
@@ -286,8 +340,7 @@ public class WKTEditor {
             try {
                 element = cursorMode.getWktClass().getConstructor().newInstance();
                 elements.add(element);
-                selection.clear();
-                selection.add(element);
+                setCurrentElement(element);
             } catch (InstantiationException | IllegalAccessException |
                     NoSuchMethodException | InvocationTargetException exception) {
                 exception.printStackTrace();
@@ -310,11 +363,20 @@ public class WKTEditor {
     }
 
     /**
-     * Notifies the listener that an element has changed.
+     * Notifies the listeners that an element has changed.
      */
     private void notifyElementChanged() {
-        if (listener != null) {
+        for (ElementChangeListener listener : elementListeners) {
             listener.onElementChanged();
+        }
+    }
+
+    /**
+     * Notifies the listeners that the selection has changed.
+     */
+    private void notifySelectionChanged() {
+        for (SelectionChangedListener listener : selectionListeners) {
+            listener.onSelectionChanged(selection);
         }
     }
 
@@ -333,5 +395,17 @@ public class WKTEditor {
          * Called when an element has changed.
          */
         void onElementChanged();
+    }
+
+    /**
+     * A listener for selection changes.
+     */
+    public interface SelectionChangedListener {
+        /**
+         * Called when the selection has changed.
+         *
+         * @param selection The new selection.
+         */
+        void onSelectionChanged(Set<WKTElement> selection);
     }
 }

@@ -94,6 +94,11 @@ public class WKTPoint extends WKTElement {
     }
 
     @Override
+    public Rectangle getContainingRect() {
+        return new Rectangle(x, y, 0, 0);
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
