@@ -89,6 +89,11 @@ public class WKTPoint extends WKTElement {
     }
 
     @Override
+    public boolean isContainedBy(Rectangle rect) {
+        return rect.contains(x, y);
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;

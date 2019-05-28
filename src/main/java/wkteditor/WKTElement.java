@@ -60,6 +60,14 @@ public abstract class WKTElement {
     public abstract boolean isOnElement(double x, double y, double maxDistance);
 
     /**
+     * Checks if this element is fully contained by the given rectangle.
+     *
+     * @param rect The rectangle that should contain this element.
+     * @return <code>true</code> if this element is in the rectangle.
+     */
+    public abstract boolean isContainedBy(Rectangle rect);
+
+    /**
      * Ends the current sub element and starts a new one.
      */
     public void endSubElement() {

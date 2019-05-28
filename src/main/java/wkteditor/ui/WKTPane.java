@@ -1,6 +1,7 @@
 package wkteditor.ui;
 
 import org.jetbrains.annotations.NotNull;
+import wkteditor.CursorMode;
 import wkteditor.WKTEditor;
 import wkteditor.WKTElement;
 
@@ -25,10 +26,13 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
     private int dragX;
     private int dragY;
 
+    private Rectangle select;
+
     public WKTPane(WKTEditor editor) {
         this.editor = editor;
         dragX = -1;
         dragY = -1;
+        select = new Rectangle(-1, -1, 0, 0);
         hoverElement = new WeakReference<>(null);
 
         setPreferredSize(new Dimension(200, 200));
@@ -107,18 +111,30 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
         }
 
         // Foreground
-        WKTElement selectElement = editor.getCurrentElement();
         WKTElement highlightElement = hoverElement.get();
         for (WKTElement element : editor.getElements()) {
-            if (element.equals(selectElement)) {
-                g2d.setColor(dOpt.getSelectColor());
-            } else if (element.equals(highlightElement)) {
+            if (element.equals(highlightElement)) {
                 g2d.setColor(dOpt.getHighlightColor());
+            } else if (editor.isSelected(element)) {
+                g2d.setColor(dOpt.getSelectedColor());
             } else {
                 g2d.setColor(getForeground());
             }
 
             element.paint(g2d, dOpt);
+        }
+
+        // Selection
+        if (select.x >= 0 && select.y >= 0) {
+            final int x = select.x + Math.min(select.width, 0);
+            final int y = select.y + Math.min(select.height, 0);
+            final int w = Math.abs(select.width);
+            final int h = Math.abs(select.height);
+
+            g2d.setColor(dOpt.getSelectionColor());
+            g2d.fillRect(x, y, w, h);
+            g2d.setColor(dOpt.getSelectionBorderColor());
+            g2d.drawRect(x, y, w, h);
         }
     }
 
@@ -133,7 +149,12 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
 
     @Override
     public void mousePressed(MouseEvent event) {
-        if (event.getButton() == MouseEvent.BUTTON3) {
+        if (event.getButton() == MouseEvent.BUTTON1) {
+            if (editor.getCursorMode() == CursorMode.SELECT) {
+                select.x = event.getX();
+                select.y = event.getY();
+            }
+        } else if (event.getButton() == MouseEvent.BUTTON3) {
             dragX = event.getX();
             dragY = event.getY();
         }
@@ -199,8 +220,27 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
 
     @Override
     public void mouseReleased(MouseEvent event) {
-        dragX = -1;
-        dragY = -1;
+        if (event.getButton() == MouseEvent.BUTTON1) {
+            if (editor.getCursorMode() != CursorMode.SELECT || select.x < 0 || select.y < 0 || (select.x == event.getX() && select.y == event.getY())) {
+                select.x = -1;
+                select.y = -1;
+                return;
+            }
+
+            Transform transform = editor.getDisplayOptions().getTransform();
+            editor.updateSelection(new Rectangle(
+                    transform.reverseTransformX(select.x + Math.min(select.width, 0)),
+                    transform.reverseTransformY(select.y + Math.min(select.height, 0)),
+                    transform.reverseZoom(Math.abs(select.width)),
+                    transform.reverseZoom(Math.abs(select.height))));
+
+            select.x = -1;
+            select.y = -1;
+            repaint();
+        } else if (event.getButton() == MouseEvent.BUTTON3) {
+            dragX = -1;
+            dragY = -1;
+        }
     }
 
     @Override
@@ -215,7 +255,15 @@ public class WKTPane extends JComponent implements MouseListener, MouseMotionLis
 
     @Override
     public void mouseDragged(MouseEvent event) {
-        if (event.getModifiersEx() == MouseEvent.BUTTON3_DOWN_MASK) {
+        if (event.getModifiersEx() == MouseEvent.BUTTON1_DOWN_MASK) {
+            if (select.x < 0 || select.y < 0) {
+                return;
+            }
+
+            select.width = event.getX() - select.x;
+            select.height = event.getY() - select.y;
+            repaint();
+        } else if (event.getModifiersEx() == MouseEvent.BUTTON3_DOWN_MASK) {
             if (dragX > 0 && dragY > 0) {
                 editor.getDisplayOptions()
                         .setTranslationRelative(event.getX() - dragX, event.getY() - dragY);

@@ -6,15 +6,14 @@ import wkteditor.io.WKTReader;
 import wkteditor.ui.DisplayOptions;
 import wkteditor.ui.WKTFrame;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.*;
 
 public class WKTEditor {
     public static void main(String[] args) {
@@ -30,7 +29,7 @@ public class WKTEditor {
     private ElementChangeListener listener;
 
     @NotNull
-    private WeakReference<WKTElement> curElement;
+    private Set<WKTElement> selection;
     private List<WKTElement> elements;
     @Nullable
     private File openFile;
@@ -42,7 +41,7 @@ public class WKTEditor {
         elements = new ArrayList<>();
         openFile = null;
         unsavedChanges = false;
-        curElement = new WeakReference<>(null);
+        selection = new HashSet<>();
     }
 
     /**
@@ -104,13 +103,26 @@ public class WKTEditor {
     }
 
     /**
+     * Checks if the given element is currently selected.
+     *
+     * @param element The element to check.
+     * @return <code>true</code> if the element is included in the current selection.
+     */
+    public boolean isSelected(WKTElement element) {
+        return selection.contains(element);
+    }
+
+    /**
      * Gets the wkt element that is currently being edited.
      *
      * @return The wkt element selected for editing.
      */
     @Nullable
     public WKTElement getCurrentElement() {
-        return curElement.get();
+        if (selection.size() != 1) {
+            return null;
+        }
+        return selection.stream().findAny().get();
     }
 
     /**
@@ -120,11 +132,11 @@ public class WKTEditor {
      * @see #endCurrentSubElement()
      */
     public void endCurrentElement() {
-        WKTElement elem = curElement.get();
+        WKTElement elem = getCurrentElement();
         if (elem == null) {
             return;
         }
-        curElement = new WeakReference<>(null);
+        selection.clear();
         onElementChanged();
     }
 
@@ -139,7 +151,7 @@ public class WKTEditor {
             return;
         }
 
-        WKTElement elem = curElement.get();
+        WKTElement elem = getCurrentElement();
         if (elem == null) {
             return;
         }
@@ -227,6 +239,20 @@ public class WKTEditor {
     }
 
     /**
+     * Updates the selected elements based on the given selection area.
+     *
+     * @param selectionArea The area which contains all elements that will be selected.
+     */
+    public void updateSelection(Rectangle selectionArea) {
+        selection.clear();
+        for (WKTElement element : elements) {
+            if (element.isContainedBy(selectionArea)) {
+                selection.add(element);
+            }
+        }
+    }
+
+    /**
      * Adds the specified point to the currently edited element. If no element
      * is being edited, a new one will be created.
      *
@@ -237,29 +263,31 @@ public class WKTEditor {
         if (!cursorMode.isElement()) {
             // Select element
             WKTElement selected = getSelectedElement(x, y);
-            curElement = new WeakReference<>(selected);
+            selection.clear();
+            selection.add(selected);
             onElementChanged();
 
             return;
         }
 
-        WKTElement element = curElement.get();
+        WKTElement element = getCurrentElement();
         if (element != null && element.getClass() != cursorMode.getWktClass()) {
             System.err.println("Cursor mode changed without ending previous element!");
             endCurrentElement();
         }
 
-        element = curElement.get();
+        element = getCurrentElement();
         if (element != null && !element.canAdd()) {
             endCurrentElement();
         }
 
-        element = curElement.get();
+        element = getCurrentElement();
         if (element == null) {
             try {
                 element = cursorMode.getWktClass().getConstructor().newInstance();
                 elements.add(element);
-                curElement = new WeakReference<>(element);
+                selection.clear();
+                selection.add(element);
             } catch (InstantiationException | IllegalAccessException |
                     NoSuchMethodException | InvocationTargetException exception) {
                 exception.printStackTrace();

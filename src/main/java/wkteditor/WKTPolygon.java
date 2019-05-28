@@ -140,6 +140,18 @@ public class WKTPolygon extends WKTElement {
     }
 
     @Override
+    public boolean isContainedBy(Rectangle rect) {
+        for (LinkedList<WKTPoint> subPoly : subPolygons) {
+            for (WKTPoint point : subPoly) {
+                if (!point.isContainedBy(rect)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;

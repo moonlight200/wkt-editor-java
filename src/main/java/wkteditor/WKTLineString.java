@@ -93,6 +93,16 @@ public class WKTLineString extends WKTElement {
     }
 
     @Override
+    public boolean isContainedBy(Rectangle rect) {
+        for (WKTPoint point : points) {
+            if (!point.isContainedBy(rect)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;

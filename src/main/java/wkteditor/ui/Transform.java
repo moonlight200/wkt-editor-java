@@ -45,6 +45,16 @@ public class Transform {
     }
 
     /**
+     * Reverts any changes done to i.
+     *
+     * @param i The value to reverse zoom.
+     * @return The normal i.
+     */
+    public int reverseZoom(int i) {
+        return (int) (i / zoom);
+    }
+
+    /**
      * Reverts any transformations done to x.
      *
      * @param x The x-coordinate to reverse transform.

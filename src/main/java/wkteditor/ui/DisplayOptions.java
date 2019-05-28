@@ -10,16 +10,18 @@ import java.util.List;
 public class DisplayOptions {
     private static final int DEFAULT_POINT_RADIUS = 4;
     private static final float DEFAULT_LINE_WIDTH = 2.0f;
-    private static final Color DEFAULT_COLOR_SELECT = new Color(255, 95, 74);
+    private static final Color DEFAULT_COLOR_SELECTED = new Color(255, 95, 74);
     private static final Color DEFAULT_COLOR_HIGHLIGHT = new Color(255, 166, 154);
+    private static final Color DEFAULT_COLOR_SELECTION = new Color(39, 172, 227, 84);
     private static final double DEFAULT_TRANSLATE_X = 0.0;
     private static final double DEFAULT_TRANSLATE_Y = 0.0;
     private static final double DEFAULT_ZOOM = 1.0;
 
     private int pointRadius;
     private float lineWidth;
-    private Color colorSelect;
+    private Color colorSelected;
     private Color colorHighlight;
+    private Color colorSelection;
 
     private double translateX;
     private double translateY;
@@ -32,8 +34,9 @@ public class DisplayOptions {
 
         pointRadius = DEFAULT_POINT_RADIUS;
         lineWidth = DEFAULT_LINE_WIDTH;
-        colorSelect = DEFAULT_COLOR_SELECT;
+        colorSelected = DEFAULT_COLOR_SELECTED;
         colorHighlight = DEFAULT_COLOR_HIGHLIGHT;
+        colorSelection = DEFAULT_COLOR_SELECTION;
         translateX = DEFAULT_TRANSLATE_X;
         translateY = DEFAULT_TRANSLATE_Y;
         zoom = DEFAULT_ZOOM;
@@ -130,8 +133,16 @@ public class DisplayOptions {
      *
      * @return The color for the selected element.
      */
-    public Color getSelectColor() {
-        return colorSelect;
+    public Color getSelectedColor() {
+        return colorSelected;
+    }
+
+    public Color getSelectionColor() {
+        return colorSelection;
+    }
+
+    public Color getSelectionBorderColor() {
+        return colorSelection.darker();
     }
 
     /**
